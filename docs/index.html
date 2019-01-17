@@ -270,6 +270,8 @@
     runTestsButton.addEventListener('click', (e) => {
         e.preventDefault();
         const storage = localStorage
+        console.log(storage);
+        
         const tests = JSON.parse(localStorage.tests);
         const data = {
             files: {
@@ -286,6 +288,10 @@
         };
         console.log(data, '555');
     });
+    window.addEventListener('message', (e) => {
+        console.log(e, '==========');
+        
+    })
     newFileForm.addEventListener('submit', function (e) {
         e.preventDefault();
         const name = addInput.value;
