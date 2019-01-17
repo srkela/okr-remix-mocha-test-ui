@@ -290,6 +290,7 @@
     });
     window.addEventListener('message', (e) => {
         console.log(e, '==========');
+        header.innerHTML = JSON.stringify(e);
         
     })
     newFileForm.addEventListener('submit', function (e) {
