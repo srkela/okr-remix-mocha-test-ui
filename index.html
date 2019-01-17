@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Page Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/"
+        crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700,700i" rel="stylesheet">
+    <script src="src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="src-noconflict/ext-language_tools.js" type="text/javascript" charset="utf-8"></script>
+    <script src="src-noconflict/worker-javascript.js" type="text/javascript" charset="utf-8"></script>
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+        }
+        #editor {
+            margin-top: 20px;
+            margin-bottom: 0;
+            width: 100vw;
+            height: calc(80vh - 200px); 
+            border-bottom: solid 1px #F0F0F0;
+        }
+
+        .add-test,
+        .cancel-test,
+        .submit-test {
+            cursor: pointer;
+            height: 15px;
+            width: 15px;
+            border-radius: 50%;
+            padding: 0;
+            border: 0;
+            display: inline-block;
+            margin-right: 20px;
+            
+        }
+
+        .add-test,
+        .submit-test {
+            color: #3183C8;
+        }
+
+        .cancel-test {
+            color: #DC3030
+        }
+
+        .submit-test {
+            color: #3183C8;
+        }
+
+        .controls {
+            margin: 50px auto auto 50px;
+        }
+
+        .active-test {
+            color: #38C172;
+        }
+
+        .add-form {
+            margin-bottom: 20px;
+            width: 0;
+            height: 30px;
+            -webkit-transition: width .5s ease-in-out;
+            transition: width .5s ease-in-out;
+            overflow-x: hidden;
+        }
+
+        .add-file-wrapper {
+            width: 320px;
+            align-self: center;
+        }
+
+        .active-form {
+            width: 320px;
+            height: 30px;
+            -webkit-transition: width .5s ease-in-out;
+            transition: width .5s ease-in-out;
+        }
+
+        .run-test,
+        .delete-file,
+        .add-file {
+            width: 120px;
+            color: #fafafa;
+            margin-left: 50px;
+            margin-top: 10px;
+            cursor: pointer;
+            padding: 5px 15px;
+            border-radius: 8px;
+            border: none;
+        }
+
+        .run-test,
+        .add-file {
+            background-color: #3183C8;
+            margin-left: 0;
+            margin-bottom: 5px;
+        }
+
+        .delete-file {
+            background-color: #DC3030;
+            margin-left: 0;
+        }
+
+        .controls-wrapper {
+            display: flex;
+            flex-direction: row;
+        }
+
+        .files-wrapper {
+            width: 150px;
+            margin-left: 25px;
+            height: 150px;
+            overflow-y: scroll;
+        }
+
+        .test-file {
+            padding: 2px 10px;
+            font-size: .8rem;
+            cursor: pointer;
+        }
+
+        .test-active {
+            color: #38C172;
+        }
+
+        .test-heading {
+            margin: 0 auto;
+        }
+        .test-heading {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+    
+<div class="controls">
+
+
+    <div class="controls-wrapper">
+        <div class="add-file-wrapper">
+            <form id="newFileForm" class="add-form ">
+                <label for=""></label>
+                <input id="addInput" type="text" />
+                <button type="submit" class="submit-test"><i class="fas fa-check-circle"></i></button>
+                <button id="closeForm" class="cancel-test"><i class="fas fa-times-circle"></i></button>
+            </form>
+            <button id="add" class="add-file">Add File</i></button>
+            <button id="delete" class="delete-file">Delete File</button>
+        </div>
+
+        <div id="filesWrapper" class="files-wrapper">
+
+        </div>
+
+        <div class="test-heading">
+            <h1 id="currentFile">Test Heading</h1>           
+        </div>
+
+    </div>
+</div>
+
+
+
+<div id="editor"></div>
+<button id="runTests" class="run-test">Run Test</button>
+
+<script>
+    ace.require("ace/ext/language_tools");
+    var editor = ace.edit("editor");
+    // editor.setTheme("ace/theme/monokai");
+    editor.session.setMode("ace/mode/javascript");
+    editor.getSession().getAnnotations();
+    // enable autocompletion and snippets
+    editor.setOptions({
+        enableBasicAutocompletion: true,
+        enableSnippets: true,
+        enableLiveAutocompletion: true
+    });
+    editor.session.on('change', function (delta) {
+        const files = JSON.parse(localStorage.getItem('tests'));
+        files[currentFile] = editor.getValue()
+        localStorage.setItem('tests', JSON.stringify(files))
+    });
+    let currentFile;
+    if (!localStorage.getItem('tests')) {
+        localStorage.setItem('tests', JSON.stringify({}));
+    }
+    const header = document.querySelector('#currentFile');
+    const addButton = document.querySelector('#add');
+    const newFileForm = document.querySelector('form#newFileForm');
+    const closeFormButton = document.querySelector('button#closeForm');
+    const addInput = document.querySelector('#addInput');
+    const deleteButton = document.querySelector('#delete');
+    const runTestsButton = document.querySelector('#runTests');
+    const filesWrapper = document.querySelector('#filesWrapper')
+    const itemButtonCreator = (name) => {
+        const div = document.createElement('div');
+        div.setAttribute('id', name);
+        div.setAttribute('class', 'test-file');
+        const text = document.createTextNode(name);
+        div.appendChild(text);
+        div.addEventListener('click', () => {
+            currentFile = name;
+            header.innerHTML = currentFile
+            const value = JSON.parse(localStorage.getItem('tests'))[name];
+            editor.setValue(value);
+            setActiveFileStyle(name);
+        });
+        return div;
+    }
+
+    function setActiveFileStyle(name) {
+        const files = filesWrapper.querySelectorAll('div');
+        files.forEach(element => {
+            if (element.id === name) {
+                element.className = 'test-file test-active';
+            } else {
+                element.className = 'test-file';
+            }
+        });
+    }
+
+    function renderFiles() {
+        const files = JSON.parse(localStorage.getItem('tests'));
+        filesWrapper.innerHTML = '';
+        if (files && Object.keys(files).length) {
+            if (!currentFile) {
+                currentFile = Object.keys(files).sort()[0];
+                header.innerHTML = currentFile
+            }
+            deleteButton.style.display = 'block'
+            editor.setValue(files[currentFile]);
+            Object.keys(files).sort().forEach(name => {
+                const button = itemButtonCreator(name);
+                filesWrapper.appendChild(button);
+            });
+            setActiveFileStyle(currentFile);
+        } else {
+            deleteButton.style.display = 'none'
+        }
+    };
+
+    function deleteFile() {
+        const tests = JSON.parse(localStorage.getItem('tests'));
+        delete tests[currentFile];
+        if (Object.keys(tests).length) {
+            currentFile = Object.keys(tests)[0];
+            header.innerHTML = currentFile
+        } else {
+            currentFile = undefined;
+            header.innerHTML = null;
+            editor.setValue('');
+        }
+        localStorage.setItem('tests', JSON.stringify(tests));
+        renderFiles()
+    }
+    closeFormButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        newFileForm.style.width = '0';
+        addButton.style.display = 'block'
+    });
+
+    deleteButton.addEventListener('click', deleteFile);
+    addButton.addEventListener('click', function () {
+        this.style.display = 'none';
+        newFileForm.style.width = '400px';
+    });
+    runTestsButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        const storage = localStorage
+        const tests = JSON.parse(localStorage.tests);
+        const data = {
+            files: {
+                test: Object.keys(tests).map(key => ({
+                    name: key,
+                    content: tests[key]
+                })),
+                contracts: Object.keys(localStorage).filter(i => (i !== 'tests' && /sol$/.test(i))).map(
+                    key => ({
+                        name: key.split(':').length > 1 ? key.split(':')[1] : key.split(':')[0],
+                        content: localStorage[key]
+                    }))
+            }
+        };
+        console.log(data, '555');
+    });
+    newFileForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const name = addInput.value;
+        if (name) {
+            const files = JSON.parse(localStorage.getItem('tests'));
+            if (files && Object.keys(files).length) {
+                if (files[name] === undefined && files.undefined) {
+                    const newFiles = { ...files,
+                        [name]: files['undefined']
+                    };
+                    delete newFiles.undefined;
+                    localStorage.setItem('tests', JSON.stringify(newFiles));
+                    currentFile = name;
+                    header.innerHTML = currentFile
+                    setActiveFileStyle(name)
+                    this.style.width = '0';
+                    addButton.style.display = 'block'
+                    addInput.value = '';
+                    renderFiles();
+                } else if (files[name] === undefined) {
+                    localStorage.setItem('tests', JSON.stringify({ ...files,
+                        [name]: ''
+                    }))
+                    currentFile = name;
+                    header.innerHTML = currentFile
+                    setActiveFileStyle(name)
+                    this.style.width = '0';
+                    addButton.style.display = 'block'
+                    addInput.value = '';
+                    renderFiles();
+                } else {
+                    console.log('file already exists')
+                }
+            } else {
+                this.style.width = '0';
+                addButton.style.display = 'block'
+                localStorage.setItem('tests', JSON.stringify({
+                    [name]: ''
+                }));
+                currentFile = name;
+                header.innerHTML = currentFile
+                setActiveFileStyle(name)
+                addInput.value = '';
+                renderFiles();
+            }
+        }
+    });
+    renderFiles()
+</script>
+
+</body>
+</html>
